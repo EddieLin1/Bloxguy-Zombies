@@ -1,0 +1,2 @@
+-- Replaces the default Health script so players do not regenerate.
+-- Heal by picking up supply crates dropped by zombies.

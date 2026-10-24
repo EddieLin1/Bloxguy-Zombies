@@ -1,0 +1,20 @@
+{
+  "name": "Bloxguy Zombies",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "GameConfig": { "$path": "Scripts/GameConfig.lua" }
+    },
+    "ServerScriptService": {
+      "GameManager": { "$path": "Scripts/GameManager.server.lua" }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "ClientMain": { "$path": "Scripts/ClientMain.client.lua" }
+      },
+      "StarterCharacterScripts": {
+        "Health": { "$path": "Scripts/Health.server.lua" }
+      }
+    }
+  }
+}
