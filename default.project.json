@@ -3,17 +3,22 @@
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
-      "GameConfig": { "$path": "Scripts/GameConfig.lua" }
+      "Shared": { "$path": "src/Shared" }
     },
     "ServerScriptService": {
-      "GameManager": { "$path": "Scripts/GameManager.server.lua" }
+      "$ignoreUnknownInstances": false,
+      "Server": { "$path": "src/Server" }
     },
     "StarterPlayer": {
+      "$properties": {
+        "EnableMouseLockOption": true
+      },
       "StarterPlayerScripts": {
-        "ClientMain": { "$path": "Scripts/ClientMain.client.lua" }
+        "$ignoreUnknownInstances": false,
+        "Client": { "$path": "src/Client" }
       },
       "StarterCharacterScripts": {
-        "Health": { "$path": "Scripts/Health.server.lua" }
+        "Health": { "$path": "src/Character/Health.server.lua" }
       }
     }
   }

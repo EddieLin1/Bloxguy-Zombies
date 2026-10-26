@@ -1,0 +1,3 @@
+--!strict
+-- Replaces Roblox's default "Health" character script, which regenerates health with no delay.
+-- Healing is handled by HealthService (regen after not taking damage) and supply crates. This script intentionally does nothing.
