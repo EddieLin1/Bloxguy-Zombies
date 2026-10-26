@@ -1,6 +1,8 @@
 --!strict
 -- Out-of-combat healing: after HealthRegenDelay seconds without taking damage, players heal over time.
 -- Roblox's default regen is disabled (src/Character/Health.server.lua) so the delay is controlled here.
+-- Taking damage also staggers the player: they walk slower for PlayerStaggerDuration seconds.
+-- Heal and hurt visuals/sounds are client-side (HealthFeedbackController).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -16,6 +18,8 @@ type Tracked = {
 	Humanoid: Humanoid,
 	LastDamage: number,
 	LastHealth: number,
+	BaseWalkSpeed: number,
+	StaggerThread: thread?, -- restores walk speed when the current stagger ends
 	Maid: Maid.Maid,
 }
 
@@ -23,12 +27,32 @@ local HealthService = {}
 
 local tracked: { [Player]: Tracked } = {}
 
+local function cancelStagger(entry: Tracked)
+	local thread = entry.StaggerThread
+	if thread and coroutine.status(thread) ~= "dead" then
+		task.cancel(thread)
+	end
+	entry.StaggerThread = nil
+end
+
 local function stopTracking(player: Player)
 	local entry = tracked[player]
 	if entry then
+		cancelStagger(entry)
 		entry.Maid:Destroy()
 		tracked[player] = nil
 	end
+end
+
+-- Slows the player briefly. A new hit restarts the timer instead of stacking the slow.
+local function stagger(entry: Tracked)
+	cancelStagger(entry)
+	local humanoid = entry.Humanoid
+	humanoid.WalkSpeed = entry.BaseWalkSpeed * (1 - math.clamp(GameRules.PlayerStaggerSlow, 0, 1))
+	entry.StaggerThread = task.delay(GameRules.PlayerStaggerDuration, function()
+		entry.StaggerThread = nil
+		humanoid.WalkSpeed = entry.BaseWalkSpeed
+	end)
 end
 
 local function onCharacterSpawned(player: Player, character: Model)
@@ -41,12 +65,17 @@ local function onCharacterSpawned(player: Player, character: Model)
 		Humanoid = humanoid,
 		LastDamage = 0,
 		LastHealth = humanoid.Health,
+		BaseWalkSpeed = humanoid.WalkSpeed,
+		StaggerThread = nil,
 		Maid = Maid.new(),
 	}
 	-- Any drop in health counts as damage, whatever caused it
 	entry.Maid:GiveTask(humanoid.HealthChanged:Connect(function(health: number)
 		if health < entry.LastHealth then
 			entry.LastDamage = os.clock()
+			if health > 0 then
+				stagger(entry)
+			end
 		end
 		entry.LastHealth = health
 	end))

@@ -20,7 +20,8 @@ GunController.__index = GunController
 export type ShotResult = {
 	Origin: Vector3,
 	Endpoints: { Vector3 },
-	Headshot: boolean,
+	Hits: { Vector3 },
+	HeadHits: { Vector3 },
 }
 
 export type GunController = typeof(setmetatable({} :: {
@@ -87,7 +88,8 @@ function GunController.TryFire(self: GunController, direction: Vector3, root: Ba
 	return {
 		Origin = origin,
 		Endpoints = result.Endpoints,
-		Headshot = result.Headshot,
+		Hits = result.Hits,
+		HeadHits = result.HeadHits,
 	}
 end
 

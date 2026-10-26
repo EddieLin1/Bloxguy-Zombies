@@ -1,6 +1,6 @@
 --!strict
--- The headshot confirmation sound. Plays as 2D (same volume wherever the zombie was), only for the
--- player who landed the shot.
+-- 2D feedback sounds for the local player only (same volume wherever the action happened):
+-- the headshot confirmation crunch, and the hurt sound when you take damage.
 
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,17 +12,31 @@ local LIFETIME = 3 -- seconds before a played copy is cleaned up
 
 local HitSound = {}
 
-local headshotTemplate = Instance.new("Sound")
-headshotTemplate.Name = "HeadshotSound"
-headshotTemplate.SoundId = GameRules.HeadshotSound
-headshotTemplate.Volume = GameRules.HeadshotSoundVolume
+local function makeTemplate(name: string, soundId: string, volume: number): Sound
+	local sound = Instance.new("Sound")
+	sound.Name = name
+	sound.SoundId = soundId
+	sound.Volume = volume
+	return sound
+end
 
--- A fresh copy each time, so quick headshots overlap instead of cutting each other off.
-function HitSound.PlayHeadshot()
-	local sound = headshotTemplate:Clone()
+local headshotTemplate = makeTemplate("HeadshotSound", GameRules.HeadshotSound, GameRules.HeadshotSoundVolume)
+local hurtTemplate = makeTemplate("HurtSound", GameRules.HurtSound, GameRules.HurtSoundVolume)
+
+-- A fresh copy each time, so quick repeats overlap instead of cutting each other off.
+local function play(template: Sound)
+	local sound = template:Clone()
 	sound.Parent = SoundService
 	sound:Play()
 	Debris:AddItem(sound, LIFETIME)
+end
+
+function HitSound.PlayHeadshot()
+	play(headshotTemplate)
+end
+
+function HitSound.PlayHurt()
+	play(hurtTemplate)
 end
 
 return HitSound

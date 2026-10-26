@@ -6,7 +6,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Types = require(ReplicatedStorage.Shared.Types)
 
-local ARM_RAISE = math.rad(90) -- classic zombie pose: arms stretched forward
+-- How far the arms are lifted forward from hanging at the sides (0 = straight down, 90 = straight out)
+local ARM_RAISE = math.rad(20)
 local FACE_TEXTURE = "rbxasset://textures/face.png"
 
 local ZombieRig = {}

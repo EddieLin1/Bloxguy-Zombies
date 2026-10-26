@@ -9,6 +9,13 @@ export type FiringConfig = {
 	Pierce: number, -- living enemies one ray can pass through
 }
 
+-- What one bullet does to a zombie besides damage (per pellet for shotguns).
+export type ImpactConfig = {
+	StoppingPower: number, -- 0..1: fraction of walk speed the zombie loses while staggered (1 = stops)
+	Knockback: number, -- studs/s shove away from the shooter; 0 = none
+	RagdollForce: number, -- studs/s push on the body part hit by the killing shot
+}
+
 export type WeaponEffects = {
 	Color: Color3, -- tracer and notification colour
 	Sound: string?, -- optional sound asset id, e.g. "rbxassetid://123456"
@@ -23,6 +30,7 @@ export type WeaponDefinition = {
 	UnlockCombo: number, -- kill combo that unlocks it; 0 = starting weapon
 	HandleLength: number, -- length of the generated gun model
 	Firing: FiringConfig,
+	Impact: ImpactConfig,
 	Effects: WeaponEffects,
 }
 
@@ -36,14 +44,32 @@ export type EnemyDefinition = {
 	DirectChaseDistance: number, -- always walk straight at the target inside this distance
 	PathRecomputeInterval: number,
 	WaypointReachedDistance: number,
-	Agent: { Radius: number, Height: number, CanJump: boolean },
+	Agent: { Radius: number, Height: number }, -- size used for pathfinding (zombies never path with jumps)
 	Colors: { Skin: Color3, Shirt: Color3, Pants: Color3 },
 	WalkAnimationId: string,
+	SpeedMultiplier: number, -- on top of the wave's speed
+	Behaviour: EnemyBehaviour,
+	Flank: FlankConfig?, -- required when Behaviour is "Flank"
+}
+
+-- "Direct": walk straight at the nearest player. "Flank": swing out to one side and arc in.
+export type EnemyBehaviour = "Direct" | "Flank"
+
+export type FlankConfig = {
+	StartDistance: number, -- walks straight at you until this close, then starts its attack run
+	Angle: number, -- degrees off to the side the attack run comes at you from (90 = straight from the side)
+	EngageDistance: number, -- inside this distance it stops arcing and charges straight in
+	GoalDistanceFactor: number, -- 0..1: how far along the arc it aims each step (lower = tighter curve)
+}
+
+export type WaveEnemy = {
+	Id: string,
+	Weight: number, -- relative spawn chance within the wave
 }
 
 export type WaveDefinition = {
 	Number: number,
-	EnemyId: string,
+	Enemies: { WaveEnemy },
 	Count: number,
 	EnemyHealth: number,
 	EnemySpeed: number,
@@ -55,7 +81,10 @@ export type PickupDefinition = {
 	DropChance: number, -- per zombie kill
 	Heal: number,
 	AmmoFraction: number, -- refills this fraction of each weapon's max ammo
-	Lifetime: number,
+	Lifetime: number, -- seconds before an untouched crate disappears
+	BlinkTime: number, -- seconds before disappearing that the crate starts flashing
+	BlinkStartRate: number, -- flashes per second when flashing starts
+	BlinkEndRate: number, -- flashes per second just before it disappears
 	CollectRadius: number,
 	HoverHeight: number, -- studs from the ground to the crate's centre
 	BobHeight: number, -- studs the crate floats up and down (client-side visual)

@@ -3,12 +3,14 @@
 -- and the death/removal events that score, pickups and the wave loop subscribe to.
 
 local Debris = game:GetService("Debris")
+local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage.Shared
 local Constants = require(Shared.Constants)
 local EnemyDefinitions = require(Shared.Definitions.Enemies)
+local GameRules = require(Shared.Definitions.GameRules)
 local Signal = require(Shared.Util.Signal)
 local Types = require(Shared.Types)
 
@@ -16,6 +18,8 @@ local Server = script.Parent.Parent
 local Enemy = require(Server.Enemies.Enemy)
 local SpawnLocator = require(Server.Enemies.SpawnLocator)
 local ZombieRig = require(Server.Enemies.ZombieRig)
+local Ragdoll = require(Server.Util.Ragdoll)
+local WeaponTypes = require(Server.Weapons.WeaponTypes)
 local WorldFolders = require(Server.Util.WorldFolders)
 local PlayerService = require(script.Parent.PlayerService)
 
@@ -27,6 +31,15 @@ local EnemyService = {}
 
 EnemyService.EnemyDied = Signal.new() -- (enemy: Enemy, killer: Player?, position: Vector3)
 EnemyService.EnemyRemoved = Signal.new() -- (enemy: Enemy), once per enemy whether killed or destroyed
+
+-- Zombie bumpers collide with everything except shots (the collision groups replicate to clients)
+local groups = Constants.CollisionGroups
+for _, group in { groups.Bumper, groups.Shots } do
+	if not PhysicsService:IsCollisionGroupRegistered(group) then
+		PhysicsService:RegisterCollisionGroup(group)
+	end
+end
+PhysicsService:CollisionGroupSetCollidable(groups.Bumper, groups.Shots, false)
 
 local enemyFolder = WorldFolders.Get(Constants.Folders.Enemies)
 local pickupFolder = WorldFolders.Get(Constants.Folders.Pickups)
@@ -47,6 +60,10 @@ end
 local world: Enemy.World = {
 	Targets = {},
 	MapParams = mapParams,
+	EnemyFolder = enemyFolder,
+	IsLivingEnemyPart = function(_part: Instance): boolean
+		return false
+	end,
 	FallLimitY = workspace.FallenPartsDestroyHeight + FALL_MARGIN,
 	FindRespawn = findRespawn,
 }
@@ -88,8 +105,15 @@ local function onEnemyRemoved(enemy: Enemy.Enemy, killed: boolean)
 	enemy:Destroy()
 
 	if killed then
-		-- The corpse is no longer an enemy; it only stays briefly for the death ragdoll.
-		Debris:AddItem(enemy.Model, enemy.Definition.CorpseTime)
+		-- The corpse is no longer an enemy. Once the ragdoll has settled it freezes into an obstacle
+		-- players and zombies have to climb over, then it is removed after CorpseTime.
+		local model = enemy.Model
+		task.delay(GameRules.CorpseFreezeDelay, function()
+			if model.Parent then
+				Ragdoll.Freeze(model)
+			end
+		end)
+		Debris:AddItem(model, enemy.Definition.CorpseTime)
 		EnemyService.EnemyDied:Fire(enemy, enemy.LastAttacker, position)
 	end
 	EnemyService.EnemyRemoved:Fire(enemy)
@@ -117,7 +141,7 @@ function EnemyService.Spawn(enemyId: string, wave: Types.WaveDefinition): Enemy.
 	model.Parent = enemyFolder
 
 	local variance = definition.SpeedVariance
-	local speed = wave.EnemySpeed * rng:NextNumber(1 - variance, 1 + variance)
+	local speed = wave.EnemySpeed * definition.SpeedMultiplier * rng:NextNumber(1 - variance, 1 + variance)
 	local enemy = Enemy.new(model, definition, wave.EnemyHealth, speed)
 	-- Server-owned physics: no stutter from ownership hand-offs, and clients cannot steer enemies.
 	pcall(function()
@@ -132,9 +156,10 @@ function EnemyService.Spawn(enemyId: string, wave: Types.WaveDefinition): Enemy.
 	return enemy
 end
 
--- The single entry point for damaging enemies.
-function EnemyService.Damage(enemy: Enemy.Enemy, amount: number, source: Player?)
-	enemy:TakeDamage(amount, source)
+-- The single entry point for damaging enemies. `hit` (optional) adds stagger, knockback and the
+-- ragdoll push if this hit is the killing one.
+function EnemyService.Damage(enemy: Enemy.Enemy, amount: number, source: Player?, hit: WeaponTypes.Hit?)
+	enemy:TakeDamage(amount, source, hit)
 end
 
 -- The enemy model (living or corpse) that contains this part, if any.
@@ -150,17 +175,13 @@ function EnemyService.GetModelFromPart(part: Instance): Model?
 end
 
 -- Damages the living enemy that owns this model. Returns false for corpses and unknown models.
-function EnemyService.DamageModel(model: Model, amount: number, source: Player?): boolean
+function EnemyService.DamageModel(model: Model, amount: number, source: Player?, hit: WeaponTypes.Hit?): boolean
 	local enemy = byModel[model]
 	if not enemy or enemy.Health <= 0 then
 		return false
 	end
-	EnemyService.Damage(enemy, amount, source)
+	EnemyService.Damage(enemy, amount, source, hit)
 	return true
-end
-
-function EnemyService.AliveCount(): number
-	return #active
 end
 
 -- Removes every enemy and corpse without firing any events (used between rounds).
@@ -175,6 +196,14 @@ function EnemyService.ClearAll()
 end
 
 function EnemyService.Start()
+	-- Lets zombies tell a living zombie (needs a big horde to climb) from a corpse or limb (always climbable)
+	world.IsLivingEnemyPart = function(part: Instance): boolean
+		local model = EnemyService.GetModelFromPart(part)
+		if model and byModel[model] then
+			return true
+		end
+		return false
+	end
 	for _, definition in EnemyDefinitions.All() do
 		getTemplate(definition)
 	end

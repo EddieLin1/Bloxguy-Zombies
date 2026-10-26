@@ -166,8 +166,8 @@ local function onWeaponFire(player: Player, direction: unknown)
 	end
 	local shot = controller:TryFire(direction.Unit, root)
 	if shot then
-		weaponFired:FireAllClients(player, controller.Definition.Id, shot.Origin, shot.Endpoints)
-		if shot.Headshot then
+		weaponFired:FireAllClients(player, controller.Definition.Id, shot.Origin, shot.Endpoints, shot.Hits, shot.HeadHits)
+		if #shot.HeadHits > 0 then
 			headshot:FireClient(player) -- once per shot, even if several pellets hit heads
 		end
 	end

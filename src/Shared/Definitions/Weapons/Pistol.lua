@@ -10,6 +10,7 @@ local Pistol: Types.WeaponDefinition = {
 	UnlockCombo = 0,
 	HandleLength = 1.55,
 	Firing = { Type = "Hitscan", Range = 250, Pellets = 1, SpreadDegrees = 1, Pierce = 1 },
+	Impact = { StoppingPower = 0.6, Knockback = 4, RagdollForce = 35 },
 	Effects = { Color = Color3.fromRGB(255, 230, 120), Sound = "rbxassetid://4502821590" },
 }
 

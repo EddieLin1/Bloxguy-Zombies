@@ -72,6 +72,8 @@ local function spawnCrate(deathPosition: Vector3)
 	light.Brightness = LIGHT_BRIGHTNESS
 	light.Parent = part
 	part:AddTag(Constants.Tags.Pickup)
+	-- Clients use this to flash the crate before it disappears
+	part:SetAttribute(Constants.Attributes.ExpiresAt, workspace:GetServerTimeNow() + definition.Lifetime)
 	part.Parent = folder
 
 	local crate: Crate = { Part = part, ExpiresAt = os.clock() + definition.Lifetime }

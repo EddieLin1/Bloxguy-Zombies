@@ -9,8 +9,9 @@ local FOLDER_NAME = "Remotes"
 
 local EVENTS = {
 	"WeaponFire", -- client -> server: (direction: Vector3)
-	"WeaponFired", -- server -> all: (shooter: Player, weaponId: string, origin: Vector3, endpoints: { Vector3 })
+	"WeaponFired", -- server -> all: (shooter, weaponId, origin, endpoints, hits, headHits); positions are Vector3s
 	"Headshot", -- server -> shooter: () after a shot that damaged a living enemy's head
+	"LimbSevered", -- server -> all: (body: BasePart, c0: CFrame, limb: BasePart, c1: CFrame) for blood
 	"WeaponUnlocked", -- server -> client: (weaponId: string)
 	"WeaponRefilled", -- server -> client: (weaponId: string)
 	"PickupCollected", -- server -> client: (heal: number)

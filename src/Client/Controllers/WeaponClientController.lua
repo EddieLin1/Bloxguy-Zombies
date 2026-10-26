@@ -18,6 +18,7 @@ local Types = require(Shared.Types)
 local WeaponDefinitions = require(Shared.Definitions.Weapons)
 
 local Effects = script.Parent.Parent.Effects
+local BloodSplash = require(Effects.BloodSplash)
 local HitSound = require(Effects.HitSound)
 local ShotSound = require(Effects.ShotSound)
 local Tracer = require(Effects.Tracer)
@@ -34,6 +35,7 @@ local headshot = Net.Event("Headshot")
 local rng = Random.new()
 local aimParams = RaycastParams.new()
 aimParams.FilterType = Enum.RaycastFilterType.Exclude
+aimParams.CollisionGroup = Constants.CollisionGroups.Shots -- aim at the zombie's body, not its invisible bumper
 
 local WeaponClientController = {}
 
@@ -160,12 +162,14 @@ local function tryFire()
 	if now - lastShot < definition.FireInterval then
 		return
 	end
+	lastShot = now
+	local handle = tool:FindFirstChild("Handle")
 	if tool:GetAttribute(Constants.Attributes.Ammo) == 0 then
+		-- Out of ammo: click on the weapon's own fire rhythm, and send nothing to the server
+		ShotSound.PlayEmpty(handle)
 		return
 	end
-	lastShot = now
 
-	local handle = tool:FindFirstChild("Handle")
 	local origin = if handle and handle:IsA("BasePart") then handle.Position else root.Position
 	local toAim = getAimPosition() - origin
 	if toAim.Magnitude < MIN_SHOT_DISTANCE then
@@ -178,16 +182,39 @@ local function tryFire()
 	ShotSound.Play(definition, handle)
 end
 
-local function onWeaponFired(shooter: unknown, weaponId: unknown, origin: unknown, endpoints: unknown)
-	if shooter == player then
-		return -- already drawn locally
+local function playBlood(positions: unknown, origin: Vector3, style: BloodSplash.SplashStyle)
+	if typeof(positions) ~= "table" then
+		return
 	end
+	for _, position in positions :: { any } do
+		if typeof(position) == "Vector3" then
+			BloodSplash.Play(position, origin, style)
+		end
+	end
+end
+
+local function onWeaponFired(
+	shooter: unknown,
+	weaponId: unknown,
+	origin: unknown,
+	endpoints: unknown,
+	hits: unknown,
+	headHits: unknown
+)
 	if typeof(weaponId) ~= "string" or typeof(origin) ~= "Vector3" or typeof(endpoints) ~= "table" then
 		return
 	end
 	local definition = WeaponDefinitions.Find(weaponId)
 	if not definition then
 		return
+	end
+
+	-- Blood only appears once the server confirms a hit, for everyone including the shooter
+	playBlood(hits, origin, "Body")
+	playBlood(headHits, origin, "Headshot")
+
+	if shooter == player then
+		return -- tracers and sound were already played locally when firing
 	end
 	for _, endpoint in endpoints :: { any } do
 		if typeof(endpoint) == "Vector3" then

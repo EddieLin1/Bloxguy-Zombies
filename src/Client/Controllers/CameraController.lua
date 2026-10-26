@@ -29,7 +29,10 @@ local function usingMouse(): boolean
 end
 
 local function refresh()
-	local locked = not usingMouse() or UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter
+	local mouseLocked = UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter
+	-- Shift Lock shows Roblox's own crosshair cursor in the centre; hide it so only ours shows
+	UserInputService.MouseIconEnabled = not mouseLocked
+	local locked = not usingMouse() or mouseLocked
 	if locked ~= aimLocked then
 		aimLocked = locked
 		CameraController.AimLockChanged:Fire(locked)

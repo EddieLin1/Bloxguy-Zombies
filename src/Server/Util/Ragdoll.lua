@@ -48,6 +48,15 @@ local function ragdollJoint(joint: Motor6D)
 	joint.Enabled = false
 end
 
+-- Locks a settled ragdoll in place so it becomes a solid obstacle that cannot be kicked around.
+function Ragdoll.Freeze(character: Model)
+	for _, descendant in character:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			descendant.Anchored = true
+		end
+	end
+end
+
 function Ragdoll.Enable(character: Model)
 	for _, descendant in character:GetDescendants() do
 		if descendant:IsA("Motor6D") and not KEEP_JOINTS[descendant.Name] then

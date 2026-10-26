@@ -10,6 +10,7 @@ local AssaultRifle: Types.WeaponDefinition = {
 	UnlockCombo = 20,
 	HandleLength = 2.6,
 	Firing = { Type = "Hitscan", Range = 300, Pellets = 1, SpreadDegrees = 2, Pierce = 2 },
+	Impact = { StoppingPower = 0.6, Knockback = 5, RagdollForce = 40 },
 	Effects = { Color = Color3.fromRGB(255, 120, 70), Sound = "rbxassetid://113879008765178" },
 }
 

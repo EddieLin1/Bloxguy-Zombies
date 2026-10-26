@@ -8,6 +8,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Maid = require(Shared.Util.Maid)
 local Signal = require(Shared.Util.Signal)
+local Flinch = require(script.Parent.Parent.Util.Flinch)
+local Jump = require(script.Parent.Parent.Util.Jump)
 local Ragdoll = require(script.Parent.Parent.Util.Ragdoll)
 
 local HUMANOID_TIMEOUT = 10
@@ -110,6 +112,8 @@ local function onCharacterAdded(player: Player, character: Model)
 	end
 	if humanoid and humanoid:IsA("Humanoid") then
 		Ragdoll.Prepare(humanoid)
+		Flinch.Enable(character)
+		Jump.Apply(humanoid)
 		maid:GiveTask(humanoid.Died:Connect(function()
 			Ragdoll.Enable(character)
 			PlayerService.PlayerDied:Fire(player)

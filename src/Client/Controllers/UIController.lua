@@ -13,11 +13,13 @@ local WeaponDefinitions = require(Shared.Definitions.Weapons)
 local UI = script.Parent.Parent.UI
 local ComboMeter = require(UI.ComboMeter)
 local Crosshair = require(UI.Crosshair)
+local RegenOverlay = require(UI.RegenOverlay)
 local StatsPanel = require(UI.StatsPanel)
 local StatusBanner = require(UI.StatusBanner)
 local Toast = require(UI.Toast)
 local WeaponDisplay = require(UI.WeaponDisplay)
 local CameraController = require(script.Parent.CameraController)
+local HealthFeedbackController = require(script.Parent.HealthFeedbackController)
 local WeaponClientController = require(script.Parent.WeaponClientController)
 
 local PICKUP_COLOR = Color3.fromRGB(120, 255, 120)
@@ -48,10 +50,16 @@ end
 
 function UIController.Start()
 	local playerGui = player:WaitForChild("PlayerGui")
+	-- Full-screen effects sit behind the HUD and cover the whole screen, top bar included
+	local overlayGui = makeScreenGui("Overlays", 0, true, playerGui)
 	local hudGui = makeScreenGui("HUD", 1, false, playerGui)
 	local crosshairGui = makeScreenGui("Crosshair", 1, true, playerGui)
 	local notificationGui = makeScreenGui("Notifications", 2, false, playerGui)
 
+	local regenOverlay = RegenOverlay.new(overlayGui)
+	HealthFeedbackController.LocalHealed:Connect(function()
+		regenOverlay:Pulse()
+	end)
 	StatusBanner.new(hudGui)
 	StatsPanel.new(hudGui)
 	ComboMeter.new(hudGui)
@@ -71,6 +79,10 @@ function UIController.Start()
 	WeaponClientController.EquippedChanged:Connect(onEquippedChanged)
 	CameraController.AimLockChanged:Connect(refreshCrosshair)
 	onEquippedChanged(WeaponClientController.GetEquipped())
+
+	Net.Event("Headshot").OnClientEvent:Connect(function()
+		crosshair:FlashHeadshot()
+	end)
 
 	Net.Event("WeaponUnlocked").OnClientEvent:Connect(onWeaponNotice(toast, function(definition)
 		return `NEW WEAPON: {definition.DisplayName}!`

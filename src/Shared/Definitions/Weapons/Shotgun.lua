@@ -10,6 +10,7 @@ local Shotgun: Types.WeaponDefinition = {
 	UnlockCombo = 12,
 	HandleLength = 2.25,
 	Firing = { Type = "Hitscan", Range = 80, Pellets = 8, SpreadDegrees = 9, Pierce = 1 },
+	Impact = { StoppingPower = 0.9, Knockback = 14, RagdollForce = 70 },
 	Effects = { Color = Color3.fromRGB(255, 160, 80), Sound = "rbxassetid://132711300701696" },
 }
 

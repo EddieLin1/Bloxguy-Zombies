@@ -23,12 +23,12 @@ local States = Constants.GameStates
 local Attributes = Constants.Attributes
 
 local LOBBY_POLL_INTERVAL = 1
-local SPAWN_CAP_POLL_INTERVAL = 0.25
 
 type WaveOutcome = "Cleared" | "Defeat"
 
 local GameService = {}
 
+local rng = Random.new()
 local state = States.Waiting
 local waveRunning = false
 local enemiesRemaining = 0
@@ -79,13 +79,10 @@ local function clearRound()
 	setEnemiesRemaining(0)
 end
 
--- Spawns the wave over time, never exceeding the alive cap.
+-- Spawns the whole wave over time, one every SpawnInterval. There is no cap on zombies alive at once.
 local function spawnWaveEnemies(wave: Types.WaveDefinition)
 	for _ = 1, wave.Count do
-		while EnemyService.AliveCount() >= GameRules.MaxEnemiesAlive do
-			task.wait(SPAWN_CAP_POLL_INTERVAL)
-		end
-		EnemyService.Spawn(wave.EnemyId, wave)
+		EnemyService.Spawn(Waves.PickEnemyId(wave, rng), wave)
 		task.wait(wave.SpawnInterval)
 	end
 end
